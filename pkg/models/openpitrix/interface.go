@@ -29,6 +29,7 @@ type Interface interface {
 	AttachmentInterface
 	CategoryInterface
 	RepoInterface
+	ReleaseInterface
 }
 type openpitrixOperator struct {
 	ApplicationInterface
@@ -36,6 +37,7 @@ type openpitrixOperator struct {
 	AttachmentInterface
 	CategoryInterface
 	RepoInterface
+	ReleaseInterface
 }
 
 func NewOpenpitrixOperator(informers informers.SharedInformerFactory, opClient openpitrix.Client) Interface {
@@ -45,5 +47,6 @@ func NewOpenpitrixOperator(informers informers.SharedInformerFactory, opClient o
 		AttachmentInterface:  newAttachmentOperator(opClient),
 		CategoryInterface:    newCategoryOperator(opClient),
 		RepoInterface:        newRepoOperator(opClient),
+		ReleaseInterface:     newReleaseOperator(informers, opClient),
 	}
 }

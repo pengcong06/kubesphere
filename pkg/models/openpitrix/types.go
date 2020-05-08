@@ -4,6 +4,25 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
+type CreateReleaseRequest struct {
+	// required, id of app to run in cluster
+	AppId string `json:"app_id,omitempty"`
+
+	// required, custom values.yaml
+	Conf string `json:"conf,omitempty"`
+
+	// required, id of runtime
+	RuntimeId string `json:"runtime_id,omitempty"`
+
+	// required, id of app version
+	VersionId string `json:"version_id,omitempty"`
+
+	// required, release name
+	ReleaseName string `json: "release_name,omitempty"`
+
+	Username string `json:"-"`
+}
+
 type ModifyAppRequest struct {
 	// content of attachment
 	AttachmentContent []byte `json:"attachment_content,omitempty"`
@@ -861,4 +880,5 @@ const (
 	ActionSubmit    = "submit"
 	ActionRelease   = "release"
 	ActionIndex     = "index"
+	Namespace       = "namespace"
 )

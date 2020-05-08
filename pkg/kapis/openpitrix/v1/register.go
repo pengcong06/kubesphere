@@ -45,6 +45,56 @@ func AddToContainer(c *restful.Container, factory informers.InformerFactory, op 
 	webservice := runtime.NewWebService(GroupVersion)
 	handler := newOpenpitrixHandler(factory, op)
 
+	webservice.Route(webservice.GET("/namespaces/{namespace}/releases").
+		To(handler.ListReleases).
+		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Doc("List all releases within the specified namespace").
+		Param(webservice.QueryParameter(params.ConditionsParam, "query conditions, connect multiple conditions with commas, equal symbol for exact query, wave symbol for fuzzy query e.g. name~a").
+			Required(false).
+			DataFormat("key=value,key~value").
+			DefaultValue("")).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
+		Param(webservice.QueryParameter(params.PagingParam, "paging query, e.g. limit=100,page=1").
+			Required(false).
+			DataFormat("limit=%d,page=%d").
+			DefaultValue("limit=10,page=1")))
+
+	webservice.Route(webservice.GET("/namespaces/{namespace}/releases/{release}").
+		To(handler.DescribeRelease).
+		Returns(http.StatusOK, api.StatusOK, openpitrix2.Application{}).
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Doc("Describe the specified release of the namespace").
+		Param(webservice.PathParameter("namespace", "the name of the project")).
+		Param(webservice.PathParameter("release", "release ID")))
+
+	webservice.Route(webservice.PUT("/namespaces/{namespace}/releases").
+		To(handler.CreateRelease).
+		Doc("Deploy a new release").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Reads(openpitrix2.CreateReleaseRequest{}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Param(webservice.PathParameter("namespace", "the name of the project")))
+
+	webservice.Route(webservice.DELETE("/namespaces/{namespace}/releases/{release}").
+		To(handler.DeleteApplication).
+		Doc("Delete the specified release").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
+		Param(webservice.PathParameter("release", "the name of the release")))
+
+	webservice.Route(webservice.POST("/namespaces/{namespace}/releases/{release}").
+		To(handler.UpgradeRelease).
+		Doc("Upgrade the specified release").
+		Metadata(restfulspec.KeyOpenAPITags, []string{constants.NamespaceResourcesTag}).
+		Returns(http.StatusOK, api.StatusOK, errors.Error{}).
+		Param(webservice.PathParameter("namespace", "the name of the project")).
+		Param(webservice.PathParameter("release", "the name of the release")))
+
+
+	//
+
 	webservice.Route(webservice.GET("/applications").
 		To(handler.ListApplications).
 		Returns(http.StatusOK, api.StatusOK, models.PageableResponse{}).

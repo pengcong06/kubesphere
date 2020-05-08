@@ -38,6 +38,9 @@ const (
 	StateSuffix          = "-StatefulSet"
 	SystemUsername       = "system"
 	SystemUserPath       = ":system"
+	Deployment           = "deployment"
+	StatefulSet          = "statefulset"
+	DaemonSet            = "daemonset"
 )
 
 type Client interface {
@@ -48,6 +51,7 @@ type Client interface {
 	pb.CategoryManagerClient
 	pb.AttachmentManagerClient
 	pb.RepoIndexerClient
+	pb.ReleaseManagerClient
 }
 
 type client struct {
@@ -58,6 +62,7 @@ type client struct {
 	pb.CategoryManagerClient
 	pb.AttachmentManagerClient
 	pb.RepoIndexerClient
+	pb.ReleaseManagerClient
 }
 
 func parseToHostPort(endpoint string) (string, int, error) {
@@ -125,6 +130,15 @@ func newRepoIndexer(endpoint string) (pb.RepoIndexerClient, error) {
 	return pb.NewRepoIndexerClient(conn), nil
 }
 
+func newReleaseManagerClient(endpoint string) (pb.ReleaseManagerClient, error) {
+	host, port, err := parseToHostPort(endpoint)
+	conn, err := manager.NewClient(host, port)
+	if err != nil {
+		return nil, err
+	}
+	return pb.NewReleaseManagerClient(conn), nil
+}
+
 func newAppManagerClient(endpoint string) (pb.AppManagerClient, error) {
 	host, port, err := parseToHostPort(endpoint)
 	conn, err := manager.NewClient(host, port)
@@ -185,6 +199,13 @@ func NewClient(options *Options) (Client, error) {
 		return nil, err
 	}
 
+	releaseManagerClient, err := newReleaseManagerClient(options.ReleaseManagerEndpoint)
+
+	if err != nil {
+		klog.Error(err)
+		return nil, err
+	}
+
 	client := client{
 		RuntimeManagerClient:    runtimeMangerClient,
 		ClusterManagerClient:    clusterManagerClient,
@@ -193,6 +214,7 @@ func NewClient(options *Options) (Client, error) {
 		CategoryManagerClient:   categoryManagerClient,
 		AttachmentManagerClient: attachmentManagerClient,
 		RepoIndexerClient:       repoIndexerClient,
+		ReleaseManagerClient:    releaseManagerClient,
 	}
 
 	return &client, nil

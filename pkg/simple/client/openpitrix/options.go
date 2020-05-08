@@ -14,6 +14,7 @@ type Options struct {
 	CategoryManagerEndpoint   string `json:"categoryManagerEndpoint,omitempty" yaml:"categoryManagerEndpoint,omitempty"`
 	AttachmentManagerEndpoint string `json:"attachmentManagerEndpoint,omitempty" yaml:"attachmentManagerEndpoint,omitempty"`
 	RepoIndexerEndpoint       string `json:"repoIndexerEndpoint,omitempty" yaml:"repoIndexerEndpoint,omitempty"`
+	ReleaseManagerEndpoint    string `json:"releaseManagerEndpoint,omitempty" yaml:"releaseManagerEndpoint,omitempty"`
 }
 
 func NewOptions() *Options {

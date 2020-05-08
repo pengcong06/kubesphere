@@ -32,6 +32,161 @@ func newOpenpitrixHandler(factory informers.InformerFactory, opClient op.Client)
 	}
 }
 
+func (h *openpitrixHandler) ListReleases(request *restful.Request, response *restful.Response) {
+	limit, offset := params.ParsePaging(request)
+	namespace := request.PathParameter("namespace")
+	conditions, err := params.ParseConditions(request)
+
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(response, nil, err)
+		return
+	}
+
+	// filter namespaced released by runtime_id
+	if namespace != "" {
+		ns, err := h.informers.Core().V1().Namespaces().Lister().Get(namespace)
+
+		if err != nil {
+			klog.Errorln(err)
+			api.HandleInternalError(response, nil, err)
+			return
+		}
+
+		runtimeId := ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
+
+		if runtimeId == "" {
+			// runtime id not exist,return empty response
+			response.WriteAsJson(models.PageableResponse{Items: []interface{}{}, TotalCount: 0})
+			return
+		} else {
+			// filter by runtime id
+			conditions.Match[openpitrix.RuntimeId] = runtimeId
+		}
+	}
+
+	result, err := h.openpitrix.ListReleases(conditions, limit, offset)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(response, nil, err)
+		return
+	}
+
+	response.WriteAsJson(result)
+}
+
+func (h *openpitrixHandler) DescribeRelease(req *restful.Request, resp *restful.Response) {
+	namespace := req.PathParameter("namespace")
+	releaseName := req.PathParameter("release")
+
+	ns, err := h.informers.Core().V1().Namespaces().Lister().Get(namespace)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	runtimeId := ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
+
+	rls,err := h.openpitrix.DescribeRelease(releaseName,namespace,runtimeId)
+	if err != nil{
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+	resp.WriteEntity(rls)
+
+
+}
+
+func (h *openpitrixHandler) CreateRelease(req *restful.Request, resp *restful.Response) {
+	namespace := req.PathParameter("namespace")
+	var createReleaseRequest openpitrix.CreateReleaseRequest
+	err := req.ReadEntity(&createReleaseRequest)
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	createReleaseRequest.Username = req.HeaderParameter(constants.UserNameHeader)
+
+	err = h.openpitrix.CreateRelease(namespace, createReleaseRequest)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	resp.WriteEntity(errors.None)
+
+}
+
+func (h *openpitrixHandler) UpgradeRelease(req *restful.Request, resp *restful.Response) {
+	namespace := req.PathParameter("namespace")
+	var createReleaseRequest openpitrix.CreateReleaseRequest
+	err := req.ReadEntity(&createReleaseRequest)
+	if err != nil {
+		klog.V(4).Infoln(err)
+		api.HandleBadRequest(resp, nil, err)
+		return
+	}
+
+	ns, err := h.informers.Core().V1().Namespaces().Lister().Get(namespace)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	runtimeId := ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
+	createReleaseRequest.RuntimeId = runtimeId
+	createReleaseRequest.Username = req.HeaderParameter(constants.UserNameHeader)
+
+
+	err = h.openpitrix.UpgradeRelease(createReleaseRequest)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	resp.WriteEntity(errors.None)
+
+}
+
+func (h *openpitrixHandler) DeleteRelease(req *restful.Request, resp *restful.Response) {
+	releaseName := req.PathParameter("release")
+	namespace := req.PathParameter("namespace")
+
+
+	ns, err := h.informers.Core().V1().Namespaces().Lister().Get(namespace)
+
+	if err != nil {
+		klog.Errorln(err)
+		api.HandleInternalError(resp, nil, err)
+		return
+	}
+
+	runtimeId := ns.Annotations[constants.OpenPitrixRuntimeAnnotationKey]
+
+	err = h.openpitrix.DeleteRelease(runtimeId,releaseName)
+
+	if err != nil {
+		klog.Errorln(err)
+		handleOpenpitrixError(resp, err)
+		return
+	}
+
+	resp.WriteEntity(errors.None)
+
+}
+
 func (h *openpitrixHandler) ListApplications(request *restful.Request, response *restful.Response) {
 	limit, offset := params.ParsePaging(request)
 	namespace := request.PathParameter("namespace")
